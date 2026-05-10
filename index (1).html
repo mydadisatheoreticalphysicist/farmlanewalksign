@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AP Calc BC — Chalk & Conquer</title>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath:[['$$','$$']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+  startup: { typeset: false }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0d1f0f;
+  --bg2: #112214;
+  --bg3: #162b18;
+  --chalk: #eef5ec;
+  --chalk-dim: #9fb89c;
+  --chalk-dimmer: #5a7557;
+  --green: #3ecf5a;
+  --green-dim: #1e7a33;
+  --red: #e05252;
+  --gold: #f0c040;
+  --accent: #5de87a;
+  --border: rgba(94,200,100,0.2);
+  --shadow: 0 4px 32px rgba(0,0,0,0.6);
+  --radius: 12px;
+  --font-body: 'Libre Baskerville', Georgia, serif;
+  --font-mono: 'Source Code Pro', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--chalk);
+  font-family:var(--font-body);
+  min-height:100vh;
+  overflow-x:hidden;
+  position:relative;
+}
+
+/* chalk dust texture */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:0.6;
+}
+
+/* chalkboard lines */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent 39px,
+    rgba(94,200,100,0.04) 39px,
+    rgba(94,200,100,0.04) 40px
+  );
+  pointer-events:none;z-index:0;
+}
+
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px;}
+
+/* ── SCREENS ── */
+.screen{width:100%;max-width:780px;display:none;flex-direction:column;align-items:center;gap:24px;animation:fadeIn .4s ease;}
+.screen.active{display:flex;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* ── TITLE SCREEN ── */
+.title-badge{
+  margin-top:40px;
+  font-family:var(--font-mono);
+  font-size:.75rem;letter-spacing:.2em;
+  color:var(--chalk-dim);
+  text-transform:uppercase;
+  border:1px solid var(--border);
+  padding:4px 14px;border-radius:99px;
+}
+h1.game-title{
+  font-size:clamp(2.4rem,7vw,4rem);
+  font-weight:700;
+  text-align:center;
+  line-height:1.1;
+  letter-spacing:-.02em;
+  text-shadow: 0 0 40px rgba(62,207,90,0.3), 2px 2px 0 rgba(0,0,0,0.5);
+}
+h1.game-title span{color:var(--accent);}
+.subtitle{color:var(--chalk-dim);font-style:italic;text-align:center;font-size:1.1rem;}
+
+.topic-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;width:100%;
+}
+.topic-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  cursor:pointer;
+  transition:all .2s;
+  position:relative;overflow:hidden;
+}
+.topic-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(62,207,90,0.08),transparent);
+  opacity:0;transition:opacity .2s;
+}
+.topic-card:hover{border-color:var(--green-dim);transform:translateY(-2px);box-shadow:var(--shadow);}
+.topic-card:hover::before{opacity:1;}
+.topic-card .t-num{font-family:var(--font-mono);font-size:.7rem;color:var(--chalk-dimmer);letter-spacing:.1em;}
+.topic-card .t-name{font-size:1rem;font-weight:700;margin-top:4px;}
+.topic-card .t-count{font-size:.8rem;color:var(--chalk-dim);margin-top:2px;}
+.topic-card .t-status{
+  position:absolute;top:12px;right:12px;
+  font-family:var(--font-mono);font-size:.7rem;
+  padding:2px 8px;border-radius:99px;
+}
+.topic-card .t-status.locked{background:rgba(255,255,255,0.06);color:var(--chalk-dimmer);}
+.topic-card .t-status.unlocked{background:rgba(62,207,90,0.15);color:var(--green);}
+.topic-card .t-status.mastered{background:rgba(240,192,64,0.2);color:var(--gold);}
+.topic-card.locked-card{opacity:.5;cursor:not-allowed;}
+
+.start-btn,.btn{
+  background:linear-gradient(135deg,var(--green-dim),#2a9e40);
+  color:#fff;
+  border:none;
+  padding:14px 36px;
+  border-radius:var(--radius);
+  font-size:1rem;
+  font-family:var(--font-body);
+  font-weight:700;
+  cursor:pointer;
+  letter-spacing:.03em;
+  transition:all .2s;
+  box-shadow:0 4px 20px rgba(62,207,90,0.25);
+}
+.start-btn:hover,.btn:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(62,207,90,0.4);}
+.btn-outline{
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--chalk-dim);
+  padding:10px 24px;
+  border-radius:var(--radius);
+  font-family:var(--font-body);
+  cursor:pointer;
+  transition:all .2s;
+}
+.btn-outline:hover{border-color:var(--green-dim);color:var(--chalk);}
+
+/* ── HUD ── */
+#hud{
+  width:100%;max-width:780px;
+  display:none;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px 20px;
+  gap:16px;
+  align-items:center;
+  flex-wrap:wrap;
+  position:sticky;top:12px;z-index:10;
+  backdrop-filter:blur(8px);
+}
+#hud.visible{display:flex;}
+.hud-item{display:flex;flex-direction:column;align-items:center;}
+.hud-label{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.12em;color:var(--chalk-dimmer);text-transform:uppercase;}
+.hud-val{font-family:var(--font-mono);font-size:1.1rem;font-weight:600;color:var(--chalk);}
+.hud-val.streak{color:var(--gold);}
+.hud-val.timer{color:var(--green);}
+.hud-val.timer.urgent{color:var(--red);animation:pulse .5s infinite alternate;}
+@keyframes pulse{from{opacity:1}to{opacity:.5}}
+.hud-sep{width:1px;height:32px;background:var(--border);}
+.progress-wrap{flex:1;min-width:120px;}
+.progress-bar-bg{background:rgba(255,255,255,0.06);border-radius:99px;height:6px;overflow:hidden;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--green-dim),var(--accent));border-radius:99px;transition:width .4s ease;}
+.topic-label{font-family:var(--font-mono);font-size:.65rem;color:var(--chalk-dim);margin-bottom:4px;}
+
+/* ── QUESTION CARD ── */
+.q-card{
+  width:100%;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:28px 30px;
+  box-shadow:var(--shadow);
+  transition:all .3s;
+}
+.q-type-tag{
+  font-family:var(--font-mono);
+  font-size:.65rem;letter-spacing:.15em;
+  color:var(--chalk-dimmer);
+  text-transform:uppercase;
+  margin-bottom:12px;
+}
+.q-text{
+  font-size:1.15rem;
+  line-height:1.65;
+  margin-bottom:24px;
+}
+
+/* MC Options */
+.options-grid{display:flex;flex-direction:column;gap:10px;}
+.opt-btn{
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 18px;
+  color:var(--chalk);
+  font-family:var(--font-body);
+  font-size:.98rem;
+  text-align:left;
+  cursor:pointer;
+  transition:all .18s;
+  display:flex;align-items:flex-start;gap:12px;
+  line-height:1.5;
+}
+.opt-btn:hover:not(:disabled){border-color:var(--green-dim);background:rgba(62,207,90,0.07);}
+.opt-btn .opt-letter{
+  font-family:var(--font-mono);font-size:.75rem;
+  background:rgba(255,255,255,0.07);
+  border-radius:4px;padding:2px 6px;
+  flex-shrink:0;margin-top:2px;
+}
+.opt-btn.correct{border-color:var(--green);background:rgba(62,207,90,0.15);color:var(--green);}
+.opt-btn.wrong{border-color:var(--red);background:rgba(224,82,82,0.12);color:var(--red);}
+.opt-btn:disabled{cursor:default;}
+
+/* TF */
+.tf-row{display:flex;gap:12px;}
+.tf-btn{
+  flex:1;padding:18px;border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--bg3);color:var(--chalk);
+  font-family:var(--font-body);font-size:1.1rem;
+  cursor:pointer;transition:all .18s;
+}
+.tf-btn:hover:not(:disabled){border-color:var(--green-dim);}
+.tf-btn.correct{border-color:var(--green);background:rgba(62,207,90,0.15);color:var(--green);}
+.tf-btn.wrong{border-color:var(--red);background:rgba(224,82,82,0.12);color:var(--red);}
+
+/* Fill blank */
+.fill-row{display:flex;gap:10px;flex-wrap:wrap;}
+.fill-input{
+  flex:1;min-width:200px;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 18px;
+  color:var(--chalk);
+  font-family:var(--font-mono);
+  font-size:1rem;
+  outline:none;
+  transition:border .2s;
+}
+.fill-input:focus{border-color:var(--green-dim);}
+.fill-submit{
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 22px;
+  color:var(--chalk);
+  font-family:var(--font-body);
+  cursor:pointer;
+  transition:all .18s;
+}
+.fill-submit:hover{border-color:var(--green-dim);}
+
+/* Drag match */
+.match-area{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.match-col-title{font-family:var(--font-mono);font-size:.65rem;color:var(--chalk-dimmer);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+.match-items{display:flex;flex-direction:column;gap:8px;}
+.match-item{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;
+  font-size:.9rem;line-height:1.4;
+  cursor:grab;transition:all .18s;
+  user-select:none;
+}
+.match-item:active{cursor:grabbing;}
+.match-item.dragging{opacity:.4;}
+.match-item.drag-over{border-color:var(--accent);background:rgba(93,232,122,0.1);}
+.match-item.matched-correct{border-color:var(--green);background:rgba(62,207,90,0.12);color:var(--green);cursor:default;}
+.match-item.matched-wrong{border-color:var(--red);background:rgba(224,82,82,0.1);color:var(--red);cursor:default;}
+.drop-zone{
+  background:rgba(255,255,255,0.03);
+  border:1px dashed var(--border);
+  border-radius:8px;padding:10px 14px;
+  font-size:.9rem;line-height:1.4;
+  min-height:48px;display:flex;align-items:center;
+  transition:all .18s;
+}
+.drop-zone.over{border-color:var(--accent);background:rgba(93,232,122,0.07);}
+.match-submit{margin-top:14px;}
+
+/* Explanation panel */
+.explain-panel{
+  background:rgba(30,122,51,0.12);
+  border:1px solid rgba(62,207,90,0.25);
+  border-radius:10px;
+  padding:16px 20px;
+  margin-top:16px;
+  font-size:.92rem;line-height:1.6;
+  display:none;
+  animation:fadeIn .3s ease;
+}
+.explain-panel.visible{display:block;}
+.explain-label{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.12em;color:var(--green);text-transform:uppercase;margin-bottom:6px;}
+
+/* Feedback flash */
+.q-card.flash-correct{animation:flashGreen .5s ease;}
+.q-card.flash-wrong{animation:shakeRed .5s ease;}
+@keyframes flashGreen{
+  0%{box-shadow:0 0 0 0 rgba(62,207,90,0)}
+  30%{box-shadow:0 0 0 8px rgba(62,207,90,0.35)}
+  100%{box-shadow:0 0 0 0 rgba(62,207,90,0)}
+}
+@keyframes shakeRed{
+  0%{transform:none}10%{transform:translateX(-8px)}
+  30%{transform:translateX(8px)}50%{transform:translateX(-5px)}
+  70%{transform:translateX(5px)}100%{transform:none}
+}
+
+/* Next btn */
+.next-btn{
+  margin-top:16px;align-self:flex-end;
+  background:linear-gradient(135deg,var(--green-dim),#2a9e40);
+  color:#fff;border:none;
+  padding:12px 28px;border-radius:10px;
+  font-family:var(--font-body);font-size:.95rem;font-weight:700;
+  cursor:pointer;transition:all .2s;
+  display:none;
+}
+.next-btn.visible{display:block;animation:fadeIn .3s ease;}
+.next-btn:hover{transform:translateY(-1px);}
+
+/* Round summary */
+.summary-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:16px;padding:30px;width:100%;
+  box-shadow:var(--shadow);
+}
+.summary-title{font-size:1.6rem;font-weight:700;margin-bottom:4px;}
+.summary-sub{color:var(--chalk-dim);font-style:italic;margin-bottom:20px;}
+.summary-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}
+.stat-num{font-family:var(--font-mono);font-size:1.8rem;font-weight:600;}
+.stat-num.green{color:var(--green);}
+.stat-num.red{color:var(--red);}
+.stat-num.gold{color:var(--gold);}
+.stat-lbl{font-size:.75rem;color:var(--chalk-dim);margin-top:4px;}
+.ap-meter{margin-bottom:20px;}
+.ap-meter-label{font-family:var(--font-mono);font-size:.65rem;letter-spacing:.12em;color:var(--chalk-dimmer);text-transform:uppercase;margin-bottom:6px;}
+.ap-bar-bg{background:rgba(255,255,255,0.06);border-radius:99px;height:10px;overflow:hidden;}
+.ap-bar-fill{height:100%;border-radius:99px;transition:width 1s ease;background:linear-gradient(90deg,var(--red),var(--gold),var(--green));}
+.ap-score-display{font-size:1.1rem;margin-top:8px;}
+.ap-score-display span{font-family:var(--font-mono);color:var(--gold);font-size:1.4rem;}
+.summary-actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+/* Final screen */
+.final-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:16px;padding:36px;width:100%;text-align:center;
+  box-shadow:var(--shadow);
+}
+.final-score{font-family:var(--font-mono);font-size:4rem;color:var(--gold);font-weight:700;line-height:1;}
+.final-label{color:var(--chalk-dim);font-style:italic;margin-top:8px;font-size:1.1rem;}
+.ap5-badge{
+  display:inline-block;
+  background:linear-gradient(135deg,rgba(240,192,64,0.2),rgba(62,207,90,0.2));
+  border:2px solid var(--gold);
+  border-radius:99px;
+  padding:8px 24px;
+  font-family:var(--font-mono);font-size:1.1rem;color:var(--gold);
+  margin:16px 0;letter-spacing:.1em;
+}
+.topic-breakdown{display:flex;flex-direction:column;gap:8px;margin:20px 0;text-align:left;}
+.tb-row{display:flex;align-items:center;gap:10px;}
+.tb-name{font-size:.9rem;width:180px;flex-shrink:0;}
+.tb-bar-bg{flex:1;background:rgba(255,255,255,0.06);border-radius:99px;height:6px;overflow:hidden;}
+.tb-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--green-dim),var(--accent));}
+.tb-pct{font-family:var(--font-mono);font-size:.75rem;color:var(--chalk-dim);width:36px;text-align:right;}
+
+/* Confetti */
+.confetti-piece{
+  position:fixed;width:8px;height:8px;
+  border-radius:2px;
+  animation:confettiFall 2.5s ease-in forwards;
+  pointer-events:none;z-index:999;
+}
+@keyframes confettiFall{
+  0%{transform:translateY(-20px) rotate(0deg);opacity:1;}
+  100%{transform:translateY(110vh) rotate(720deg);opacity:0;}
+}
+
+/* Streak toast */
+.streak-toast{
+  position:fixed;top:70px;left:50%;transform:translateX(-50%) scale(.8);
+  background:linear-gradient(135deg,rgba(240,192,64,.9),rgba(255,200,50,.8));
+  color:#1a1a00;font-family:var(--font-mono);font-weight:600;
+  padding:8px 20px;border-radius:99px;font-size:.85rem;
+  opacity:0;transition:all .3s;pointer-events:none;z-index:20;
+  white-space:nowrap;
+}
+.streak-toast.show{opacity:1;transform:translateX(-50%) scale(1);}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:99px;}
+
+/* Responsive */
+@media(max-width:540px){
+  .match-area{grid-template-columns:1fr;}
+  .summary-stats{grid-template-columns:1fr 1fr;}
+  .tf-row{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE SCREEN -->
+  <div id="screen-title" class="screen active">
+    <div class="title-badge">AP Calculus BC</div>
+    <h1 class="game-title">Chalk &amp; <span>Conquer</span></h1>
+    <p class="subtitle">Master every topic. Earn your 5.</p>
+
+    <div style="width:100%;max-width:780px;">
+      <p style="font-family:var(--font-mono);font-size:.7rem;letter-spacing:.12em;color:var(--chalk-dimmer);text-transform:uppercase;margin-bottom:12px;">Choose a topic to start</p>
+      <div class="topic-grid" id="topic-grid"></div>
+    </div>
+
+    <div style="text-align:center;max-width:500px;">
+      <p style="color:var(--chalk-dim);font-size:.9rem;line-height:1.6;">
+        Each topic unlocks in sequence. Score <strong style="color:var(--gold)">≥80%</strong> to unlock the next.
+        Earn an <strong style="color:var(--accent)">AP 5</strong> by mastering all six topics.
+      </p>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-item">
+      <span class="hud-label">Score</span>
+      <span class="hud-val" id="hud-score">0</span>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="hud-item">
+      <span class="hud-label">Streak</span>
+      <span class="hud-val streak" id="hud-streak">0🔥</span>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="hud-item">
+      <span class="hud-label">Time</span>
+      <span class="hud-val timer" id="hud-timer">20</span>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="progress-wrap">
+      <div class="topic-label" id="hud-topic">Limits</div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="hud-progress" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUESTION SCREEN -->
+  <div id="screen-question" class="screen">
+    <div class="q-card" id="q-card">
+      <div class="q-type-tag" id="q-type-tag"></div>
+      <div class="q-text" id="q-text"></div>
+      <div id="q-answer-area"></div>
+      <div class="explain-panel" id="explain-panel">
+        <div class="explain-label">Explanation</div>
+        <div id="explain-text"></div>
+      </div>
+      <button class="next-btn" id="next-btn" onclick="nextQuestion()">Next Question →</button>
+    </div>
+  </div>
+
+  <!-- ROUND SUMMARY SCREEN -->
+  <div id="screen-summary" class="screen">
+    <div class="summary-card">
+      <div class="summary-title" id="sum-title">Round Complete!</div>
+      <div class="summary-sub" id="sum-sub"></div>
+      <div class="summary-stats">
+        <div class="stat-box"><div class="stat-num green" id="sum-correct">0</div><div class="stat-lbl">Correct</div></div>
+        <div class="stat-box"><div class="stat-num red" id="sum-wrong">0</div><div class="stat-lbl">Wrong</div></div>
+        <div class="stat-box"><div class="stat-num gold" id="sum-pts">0</div><div class="stat-lbl">Points</div></div>
+      </div>
+      <div class="ap-meter">
+        <div class="ap-meter-label">AP Score Projection</div>
+        <div class="ap-bar-bg"><div class="ap-bar-fill" id="sum-ap-bar" style="width:0%"></div></div>
+        <div class="ap-score-display" id="sum-ap-text"></div>
+      </div>
+      <div id="sum-message" style="color:var(--chalk-dim);font-style:italic;margin-bottom:16px;font-size:.95rem;"></div>
+      <div class="summary-actions" id="sum-actions"></div>
+    </div>
+  </div>
+
+  <!-- FINAL SCREEN -->
+  <div id="screen-final" class="screen">
+    <div class="final-card">
+      <div style="font-family:var(--font-mono);font-size:.7rem;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">AP Score Achieved</div>
+      <div class="final-score" id="final-score-num">5</div>
+      <div class="final-label">You've mastered AP Calculus BC</div>
+      <div class="ap5-badge">★ AP Score: 5 ★</div>
+      <div style="color:var(--chalk-dim);font-size:.95rem;margin-bottom:20px;">Total Points: <span style="font-family:var(--font-mono);color:var(--chalk)" id="final-total-pts">0</span></div>
+      <div class="topic-breakdown" id="final-breakdown"></div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px;">
+        <button class="btn" onclick="restartGame()">Play Again</button>
+        <button class="btn-outline" onclick="showTitle()">Topic Select</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="streak-toast" id="streak-toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// QUESTION BANK
+// ════════════════════════════════════════════════════════════════
+const TOPICS = [
+  { id:'limits',   name:'Limits & Continuity',    color:'#5de87a' },
+  { id:'deriv',    name:'Derivatives',             color:'#5ab8e8' },
+  { id:'integ',    name:'Integrals',               color:'#e8a85a' },
+  { id:'diffeq',   name:'Differential Equations', color:'#c45ae8' },
+  { id:'polar',    name:'Polar & Parametric',      color:'#e85a8a' },
+  { id:'series',   name:'Series & Convergence',    color:'#e8e05a' },
+];
+
+// Helper: generate a numeric variant
+function mc(topic,q,opts,ans,exp){ return {topic,type:'mc',question:q,options:opts,answer:ans,explanation:exp}; }
+function tf(topic,q,ans,exp){ return {topic,type:'tf',question:q,answer:ans,explanation:exp}; }
+function fill(topic,q,ans,exp,alts=[]){ return {topic,type:'fill',question:q,answer:ans,altAnswers:alts,explanation:exp}; }
+function match(topic,q,pairs,exp){ return {topic,type:'match',question:q,pairs,explanation:exp}; }
+
+// Randomize numbers to generate near-infinite variants
+function rn(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function rnd(a,b){ return +(Math.random()*(b-a)+a).toFixed(2); }
+
+function buildBank(){
+const B=[];
+
+// ──────────────────────────────────────────────────────────────
+// LIMITS
+// ──────────────────────────────────────────────────────────────
+const la=rn(2,9),lb=rn(2,9);
+B.push(
+mc('limits',
+  `Evaluate: $\\displaystyle\\lim_{x\\to 0}\\frac{\\sin(${la}x)}{${lb}x}$`,
+  [`$\\dfrac{${la}}{${lb}}$`,`$\\dfrac{${lb}}{${la}}$`,`$1$`,`Does not exist`],
+  `$\\dfrac{${la}}{${lb}}$`,
+  `By the special trig limit, $\\lim_{x\\to 0}\\dfrac{\\sin(ax)}{bx}=\\dfrac{a}{b}$. Here that gives $\\dfrac{${la}}{${lb}}$.`
+),
+mc('limits',
+  `$\\displaystyle\\lim_{x\\to 0}\\frac{1-\\cos x}{x}=$`,
+  [`$0$`,`$1$`,`$\\frac{1}{2}$`,`DNE`],
+  `$0$`,
+  `This is a standard trig limit: $\\lim_{x\\to 0}\\dfrac{1-\\cos x}{x}=0$ (derived from the squeeze theorem).`
+),
+tf('limits',
+  `A function can be continuous at $x=a$ even if $f(a)$ is undefined.`,
+  'False',
+  `Continuity at $a$ requires: (1) $f(a)$ exists, (2) $\\lim_{x\\to a}f(x)$ exists, (3) they are equal. If $f(a)$ is undefined, the function is not continuous there.`
+),
+mc('limits',
+  `Which type of discontinuity can be removed by factoring and cancelling?`,
+  [`Vertical asymptote`,`Jump discontinuity`,`Removable (hole)`,`Infinite oscillation`],
+  `Removable (hole)`,
+  `Removable discontinuities occur when a factor cancels in the numerator and denominator, leaving a hole. Factoring reveals that the limit exists.`
+),
+mc('limits',
+  `If $f(x)$ is continuous on $[a,b]$ and $f(a)=-3$, $f(b)=7$, what does the IVT guarantee?`,
+  [
+    `$f$ has a zero somewhere in $(a,b)$`,
+    `$f$ is differentiable on $(a,b)$`,
+    `$f$ has a maximum at the midpoint`,
+    `$f$ is increasing on $[a,b]$`
+  ],
+  `$f$ has a zero somewhere in $(a,b)$`,
+  `The Intermediate Value Theorem says $f$ takes every value between $f(a)=-3$ and $f(b)=7$, including $0$.`
+),
+fill('limits',
+  `Complete: $\\lim_{x\\to\\infty}\\dfrac{\\sin(ax)}{bx}=$ ___`,
+  '0',['zero'],
+  `As $x\\to\\infty$, $\\sin(ax)$ stays bounded in $[-1,1]$ while the denominator grows, so the limit is $0$.`
+),
+mc('limits',
+  `L'Hôpital's Rule applies when a limit has indeterminate form:`,
+  [`$\\frac{0}{\\infty}$`,`$\\frac{0}{0}$`,`$\\frac{1}{0}$`,`$\\frac{\\infty}{1}$`],
+  `$\\frac{0}{0}$`,
+  `L'Hôpital's Rule applies to $\\frac{0}{0}$ or $\\frac{\\infty}{\\infty}$ forms: $\\lim\\frac{f}{g}=\\lim\\frac{f'}{g'}$.`
+),
+mc('limits',
+  `A corner (like in $|x|$) makes a function:`,
+  [`Discontinuous`,`Non-differentiable but continuous`,`Neither continuous nor differentiable`,`Differentiable everywhere`],
+  `Non-differentiable but continuous`,
+  `$|x|$ is continuous everywhere but not differentiable at $x=0$ because the left and right derivatives differ. Continuity does not imply differentiability.`
+),
+tf('limits',
+  `If $\\lim_{x\\to a^-}f(x)=\\lim_{x\\to a^+}f(x)$ then $f$ is continuous at $a$.`,
+  'False',
+  `The two-sided limit existing is necessary but not sufficient. $f(a)$ must also exist and equal the limit. If $f(a)$ is undefined, continuity fails.`
+),
+mc('limits',
+  `The Squeeze Theorem is used to derive:`,
+  [`The chain rule`,`Special trig limits like $\\lim_{x\\to 0}\\frac{\\sin x}{x}$`,`L'Hôpital's rule`,`The MVT`],
+  `Special trig limits like $\\lim_{x\\to 0}\\frac{\\sin x}{x}$`,
+  `The squeeze (sandwich) theorem bounds $\\sin x$ between two functions that both approach 0, proving $\\lim_{x\\to 0}\\frac{\\sin x}{x}=1$.`
+),
+);
+
+const lam=rn(2,8), lbm=rn(2,8);
+B.push(
+mc('limits',
+  `$\\displaystyle\\lim_{x\\to\\infty}\\frac{${lam}x}{\\sqrt{${lbm}x^2+1}}=$`,
+  [`$\\dfrac{${lam}}{\\sqrt{${lbm}}}$`,`$\\dfrac{${lam}}{${lbm}}$`,`$${lam}$`,`$0$`],
+  `$\\dfrac{${lam}}{\\sqrt{${lbm}}}$`,
+  `For $x>0$: $\\sqrt{${lbm}x^2+1}\\approx\\sqrt{${lbm}}|x|=\\sqrt{${lbm}}x$. So the limit is $\\dfrac{${lam}}{\\sqrt{${lbm}}}$.`
+),
+mc('limits',
+  `A vertical asymptote occurs when a limit has the form:`,
+  [`$\\frac{0}{0}$`,`$\\frac{a}{0},\\,a\\neq0$`,`$\\frac{0}{a},\\,a\\neq0$`,`$\\frac{\\infty}{\\infty}$`],
+  `$\\frac{a}{0},\\,a\\neq0$`,
+  `When the denominator approaches 0 and the numerator doesn't, the function grows without bound, creating a vertical asymptote.`
+),
+mc('limits',
+  `By the MVT, if $f$ is continuous on $[${la},${la+4}]$ and differentiable on $(${la},${la+4})$, there exists $c$ such that:`,
+  [
+    `$f'(c)=\\dfrac{f(${la+4})-f(${la})}{4}$`,
+    `$f'(c)=f(${la+4})-f(${la})$`,
+    `$f(c)=\\dfrac{f(${la})+f(${la+4})}{2}$`,
+    `$f'(c)=0$`
+  ],
+  `$f'(c)=\\dfrac{f(${la+4})-f(${la})}{4}$`,
+  `The Mean Value Theorem states $f'(c)=\\dfrac{f(b)-f(a)}{b-a}$. Here $b-a=${la+4}-${la}=4$.`
+),
+match('limits',
+  `Match each discontinuity type to its description.`,
+  [
+    ['Removable','Limit exists but ≠ f(a); fixable by redefining'],
+    ['Jump','Left and right limits exist but differ'],
+    ['Infinite','Limit is ±∞; vertical asymptote'],
+    ['Oscillating','Limit does not exist; function oscillates (e.g., sin(1/x) at 0)'],
+  ],
+  `Discontinuity types: Removable (hole), Jump (step), Infinite (asymptote), Oscillating (e.g. $\\sin(1/x)$ near 0).`
+),
+);
+
+// ──────────────────────────────────────────────────────────────
+// DERIVATIVES
+// ──────────────────────────────────────────────────────────────
+const dn=rn(2,8), dm=rn(2,6);
+B.push(
+fill('deriv',
+  `$\\dfrac{d}{dx}[\\arctan x]=$ ___`,
+  '1/(1+x^2)',['\\frac{1}{1+x^2}','1/(1+x²)'],
+  `$\\dfrac{d}{dx}[\\arctan x]=\\dfrac{1}{1+x^2}$. This is one of the core inverse trig derivatives to memorize.`
+),
+mc('deriv',
+  `$\\dfrac{d}{dx}[x^{${dn}}]=$ ___`,
+  [`$${dn}x^{${dn-1}}$`,`$${dn}x^{${dn}}$`,`$x^{${dn-1}}$`,`$${dn-1}x^{${dn-1}}$`],
+  `$${dn}x^{${dn-1}}$`,
+  `Power Rule: $\\dfrac{d}{dx}[x^n]=nx^{n-1}$. Here $n=${dn}$, so the answer is $${dn}x^{${dn-1}}$.`
+),
+mc('deriv',
+  `Product Rule: $\\dfrac{d}{dx}[f(x)g(x)]=$`,
+  [
+    `$f'(x)g'(x)$`,
+    `$f(x)g'(x)+f'(x)g(x)$`,
+    `$f'(x)g(x)-f(x)g'(x)$`,
+    `$\\dfrac{f'(x)g(x)-f(x)g'(x)}{g(x)^2}$`
+  ],
+  `$f(x)g'(x)+f'(x)g(x)$`,
+  `Product Rule: $(fg)'=fg'+f'g$. Remember "first times derivative of second plus second times derivative of first".`
+),
+fill('deriv',
+  `$\\dfrac{d}{dx}[\\ln x]=$ ___`,
+  '1/x',['\\frac{1}{x}'],
+  `$\\dfrac{d}{dx}[\\ln x]=\\dfrac{1}{x}$ for $x>0$.`
+),
+mc('deriv',
+  `Chain Rule: $\\dfrac{d}{dx}[f(g(x))]=$ ___`,
+  [
+    `$f'(g(x))$`,
+    `$f'(g(x))\\cdot g'(x)$`,
+    `$f'(x)\\cdot g'(x)$`,
+    `$f(g'(x))$`
+  ],
+  `$f'(g(x))\\cdot g'(x)$`,
+  `Chain Rule: differentiate the outer function evaluated at the inner, then multiply by the derivative of the inner.`
+),
+tf('deriv',
+  `If $f'(c)=0$, then $f$ has a local extremum at $x=c$.`,
+  'False',
+  `$f'(c)=0$ only means $c$ is a critical point. You must use the 1st or 2nd derivative test to determine if it's a local max, min, or neither (e.g., inflection point like $x=0$ for $f(x)=x^3$).`
+),
+mc('deriv',
+  `$\\dfrac{d}{dx}[e^x]=$`,
+  [`$xe^{x-1}$`,`$e^x\\ln x$`,`$e^x$`,`$e^{x-1}$`],
+  `$e^x$`,
+  `$e^x$ is its own derivative — one of the most important facts in calculus.`
+),
+mc('deriv',
+  `The 2nd derivative test: if $f'(c)=0$ and $f''(c)>0$, then $x=c$ is a:`,
+  [`Local max`,`Local min`,`Inflection point`,`Cannot determine`],
+  `Local min`,
+  `$f''(c)>0$ means the function is concave up (∪) at $c$, so it's a local minimum.`
+),
+fill('deriv',
+  `$\\dfrac{d}{dx}[\\sin x]=$ ___`,
+  'cos x',['\\cos x','cosx'],
+  `$\\dfrac{d}{dx}[\\sin x]=\\cos x$.`
+),
+mc('deriv',
+  `The alternate definition of the derivative is:`,
+  [
+    `$\\lim_{h\\to 0}\\dfrac{f(x+h)-f(x)}{h}$`,
+    `$\\lim_{x\\to a}\\dfrac{f(x)-f(a)}{x-a}$`,
+    `$\\lim_{h\\to 0}\\dfrac{f(x+h)+f(x)}{h}$`,
+    `$\\lim_{x\\to 0}\\dfrac{f(x)}{x}$`
+  ],
+  `$\\lim_{x\\to a}\\dfrac{f(x)-f(a)}{x-a}$`,
+  `The alternate (limit) definition of $f'(a)$ is $\\lim_{x\\to a}\\dfrac{f(x)-f(a)}{x-a}$.`
+),
+mc('deriv',
+  `$\\dfrac{d}{dx}[\\tan x]=$`,
+  [`$\\sin^2 x$`,`$\\sec^2 x$`,`$\\sec x\\tan x$`,`$-\\csc^2 x$`],
+  `$\\sec^2 x$`,
+  `$\\dfrac{d}{dx}[\\tan x]=\\sec^2 x$.`
+),
+mc('deriv',
+  `Linearization (tangent line approximation) of $f$ at $x=a$ is:`,
+  [
+    `$f(a)+f'(a)(x-a)$`,
+    `$f(a)+f''(a)(x-a)^2$`,
+    `$f'(a)(x-a)$`,
+    `$f(a)-f'(a)(x-a)$`
+  ],
+  `$f(a)+f'(a)(x-a)$`,
+  `Linearization: $L(x)=f(a)+f'(a)(x-a)$. It's the equation of the tangent line at $a$.`
+),
+mc('deriv',
+  `Which is NOT sufficient to guarantee differentiability?`,
+  [`Continuous and smooth`,`Has a corner`,`Has no vertical tangents`,`Has a defined derivative`],
+  `Has a corner`,
+  `A corner (like in $|x|$) means left and right derivatives differ → not differentiable, even though the function may be continuous.`
+),
+mc('deriv',
+  `$\\dfrac{d}{dx}[a^x]=$`,
+  [`$xa^{x-1}$`,`$a^x\\ln a$`,`$a^x$`,`$\\ln a$`],
+  `$a^x\\ln a$`,
+  `$\\dfrac{d}{dx}[a^x]=a^x\\ln a$. This reduces to $e^x$ when $a=e$ since $\\ln e=1$.`
+),
+tf('deriv',
+  `An inflection point occurs wherever $f''(x)=0$.`,
+  'False',
+  `$f''(x)=0$ is necessary but not sufficient. The concavity must actually change sign at that point.`
+),
+match('deriv',
+  `Match each derivative rule to its formula.`,
+  [
+    ['Product Rule','$(fg)\'=fg\'+f\'g$'],
+    ['Chain Rule','$\\dfrac{d}{dx}[f(g(x))]=f\'(g(x))\\cdot g\'(x)$'],
+    ['Quotient Rule','$\\left(\\frac{f}{g}\\right)\'=\\dfrac{f\'g-fg\'}{g^2}$'],
+    ['Power Rule','$\\dfrac{d}{dx}[x^n]=nx^{n-1}$'],
+  ],
+  `The four fundamental rules of differentiation.`
+),
+);
+
+// ──────────────────────────────────────────────────────────────
+// INTEGRALS
+// ──────────────────────────────────────────────────────────────
+const ia=rn(1,6), ib=rn(7,12);
+B.push(
+mc('integ',
+  `FTC Part 2: $\\displaystyle\\int_a^b f(x)\\,dx=$`,
+  [`$F(a)-F(b)$`,`$F(b)-F(a)$`,`$f(b)-f(a)$`,`$\\dfrac{F(b)+F(a)}{2}$`],
+  `$F(b)-F(a)$`,
+  `FTC Part 2: $\\int_a^b f(x)\\,dx=F(b)-F(a)$ where $F'=f$.`
+),
+mc('integ',
+  `FTC Part 1: $\\dfrac{d}{dx}\\displaystyle\\int_a^x f(t)\\,dt=$`,
+  [`$F(x)-F(a)$`,`$f(x)$`,`$f(t)$`,`$f(a)$`],
+  `$f(x)$`,
+  `FTC Part 1: the derivative of an accumulation function is the integrand evaluated at the upper bound.`
+),
+fill('integ',
+  `$\\displaystyle\\int e^x\\,dx=$ ___`,
+  'e^x+C',['e^x + C','e^{x}+C'],
+  `$\\int e^x\\,dx=e^x+C$.`
+),
+mc('integ',
+  `$\\displaystyle\\int\\cos x\\,dx=$`,
+  [`$-\\sin x+C$`,`$\\sin x+C$`,`$\\sec^2 x+C$`,`$-\\cos x+C$`],
+  `$\\sin x+C$`,
+  `$\\int\\cos x\\,dx=\\sin x+C$.`
+),
+mc('integ',
+  `For an increasing function on $[a,b]$, the Left Riemann Sum is a(n):`,
+  [`Overestimate`,`Underestimate`,`Exact value`,`It depends on concavity`],
+  `Underestimate`,
+  `For an increasing function, left endpoints are lower than the actual function values, so the Left Riemann Sum underestimates the area.`
+),
+mc('integ',
+  `Integration by Parts formula: $\\int u\\,dv=$`,
+  [`$uv-\\int v\\,du$`,`$uv+\\int v\\,du$`,`$u'v-\\int v\\,du$`,`$\\int u'v\\,dx$`],
+  `$uv-\\int v\\,du$`,
+  `Integration by Parts: $\\int u\\,dv=uv-\\int v\\,du$. Derived from the product rule.`
+),
+tf('integ',
+  `The Trapezoidal Rule overestimates an integral when the function is concave down.`,
+  'False',
+  `The Trapezoidal Rule overestimates when the function is concave up ($f''>0$) and underestimates when concave down ($f''<0$). Trapezoids lie above a concave-down curve.`
+),
+mc('integ',
+  `$\\displaystyle\\int\\frac{1}{x}\\,dx=$`,
+  [`$\\ln(x)+C$`,`$\\ln|x|+C$`,`$\\dfrac{1}{x^2}+C$`,`$x\\ln x+C$`],
+  `$\\ln|x|+C$`,
+  `$\\int\\frac{1}{x}\\,dx=\\ln|x|+C$. The absolute value is important when $x$ can be negative.`
+),
+mc('integ',
+  `Average value of $f$ on $[a,b]$ is:`,
+  [
+    `$\\dfrac{f(a)+f(b)}{2}$`,
+    `$\\dfrac{1}{b-a}\\displaystyle\\int_a^b f(x)\\,dx$`,
+    `$\\displaystyle\\int_a^b f(x)\\,dx$`,
+    `$f\\!\\left(\\dfrac{a+b}{2}\\right)$`
+  ],
+  `$\\dfrac{1}{b-a}\\displaystyle\\int_a^b f(x)\\,dx$`,
+  `Average value formula: $f_{\\text{avg}}=\\dfrac{1}{b-a}\\int_a^b f(x)\\,dx$.`
+),
+mc('integ',
+  `The disk method for volume revolving around the $x$-axis is:`,
+  [
+    `$V=2\\pi\\displaystyle\\int_a^b xf(x)\\,dx$`,
+    `$V=\\pi\\displaystyle\\int_a^b [f(x)]^2\\,dx$`,
+    `$V=\\displaystyle\\int_a^b [f(x)]^2\\,dx$`,
+    `$V=\\pi\\displaystyle\\int_a^b f(x)\\,dx$`
+  ],
+  `$V=\\pi\\displaystyle\\int_a^b [f(x)]^2\\,dx$`,
+  `Disk method (x-axis): $V=\\pi\\int_a^b[f(x)]^2\\,dx$. Shells method is $V=2\\pi\\int_a^b xf(x)\\,dx$ (around y-axis).`
+),
+fill('integ',
+  `$\\displaystyle\\int\\sin x\\,dx=$ ___`,
+  '-cos x+C',['-\\cos x+C','-cosx+C'],
+  `$\\int\\sin x\\,dx=-\\cos x+C$.`
+),
+mc('integ',
+  `U-substitution is the reverse of which differentiation rule?`,
+  [`Product rule`,`Quotient rule`,`Chain rule`,`Power rule`],
+  `Chain rule`,
+  `U-sub reverses the chain rule: if you see $f(g(x))g'(x)$, let $u=g(x)$ and $du=g'(x)dx$.`
+),
+tf('integ',
+  `For a decreasing function, the Right Riemann Sum overestimates the integral.`,
+  'False',
+  `For a decreasing function, right endpoints are lower than actual values, so the Right Riemann Sum underestimates. Left Riemann Sums overestimate for decreasing functions.`
+),
+mc('integ',
+  `Arc length over $[a,b]$ is:`,
+  [
+    `$\\displaystyle\\int_a^b f(x)\\,dx$`,
+    `$\\displaystyle\\int_a^b\\sqrt{1+(f'(x))^2}\\,dx$`,
+    `$\\displaystyle\\int_a^b\\sqrt{1+f(x)^2}\\,dx$`,
+    `$\\displaystyle\\int_a^b|f'(x)|\\,dx`
+  ],
+  `$\\displaystyle\\int_a^b\\sqrt{1+(f'(x))^2}\\,dx$`,
+  `Arc length: $L=\\int_a^b\\sqrt{1+(dy/dx)^2}\\,dx$.`
+),
+match('integ',
+  `Match each Riemann sum to its estimation behavior for an increasing function.`,
+  [
+    ['Left Riemann Sum','Underestimate (increasing)'],
+    ['Right Riemann Sum','Overestimate (increasing)'],
+    ['Midpoint Rule','Underestimate when concave up'],
+    ['Trapezoidal Rule','Overestimate when concave up'],
+  ],
+  `For increasing functions: Left⇒under, Right⇒over. For concavity: Midpoint⇒under (concave up), Trap⇒over (concave up).`
+),
+);
+
+// ──────────────────────────────────────────────────────────────
+// DIFFERENTIAL EQUATIONS
+// ──────────────────────────────────────────────────────────────
+const dk=rn(2,9);
+B.push(
+mc('diffeq',
+  `Separable DE: $\\dfrac{dy}{dx}=g(x)h(y)$ is solved by:`,
+  [
+    `Integrating both sides directly`,
+    `Separating: $\\dfrac{1}{h(y)}dy=g(x)dx$, then integrating`,
+    `Using the chain rule`,
+    `L'Hôpital's Rule`
+  ],
+  `Separating: $\\dfrac{1}{h(y)}dy=g(x)dx$, then integrating`,
+  `Separate variables: move all $y$ terms to one side and $x$ terms to the other, then integrate both sides. Don't forget $+C$.`
+),
+mc('diffeq',
+  `Exponential growth DE: $\\dfrac{dy}{dt}=${dk}y$ has solution:`,
+  [`$y=y_0+${dk}t$`,`$y=y_0 e^{${dk}t}$`,`$y=e^{${dk}}$`,`$y=${dk}e^t$`],
+  `$y=y_0 e^{${dk}t}$`,
+  `$\\dfrac{dy}{dt}=ky\\Rightarrow y(t)=y_0 e^{kt}$. The solution to exponential growth.`
+),
+mc('diffeq',
+  `Euler's Method approximates by taking a step $\\Delta x$ using:`,
+  [
+    `$y_{n+1}=y_n+f(x_n)\\Delta x$`,
+    `$y_{n+1}=y_n+y_n'\\Delta x$`,
+    `$y_{n+1}=y_n\\cdot\\Delta x$`,
+    `$y_{n+1}=y_n+\\frac{f(x_n)}{\\Delta x}$`
+  ],
+  `$y_{n+1}=y_n+y_n'\\Delta x$`,
+  `Euler's Method: $y_{\\text{new}}=y_{\\text{old}}+\\text{slope}\\cdot\\Delta x$, where slope $=\\dfrac{dy}{dx}$ evaluated at the current point.`
+),
+tf('diffeq',
+  `The logistic growth model has a carrying capacity $M$ beyond which the population cannot grow.`,
+  'True',
+  `The logistic model $\\dfrac{dP}{dt}=kP\\left(1-\\dfrac{P}{M}\\right)$ approaches $M$ as $t\\to\\infty$. $M$ is the carrying capacity.`
+),
+mc('diffeq',
+  `Newton's Law of Cooling is $\\dfrac{dT}{dt}=$`,
+  [`$-k(T-T_s)$`,`$k(T+T_s)$`,`$-kT$`,`$kT_s$`],
+  `$-k(T-T_s)$`,
+  `Newton's Law of Cooling: $\\dfrac{dT}{dt}=-k(T-T_s)$, where $T_s$ is the surrounding temperature. Solution: $T(t)=T_s+(T_0-T_s)e^{-kt}$.`
+),
+fill('diffeq',
+  `The logistic growth DE is $\\dfrac{dP}{dt}=kP\\left(1-\\dfrac{P}{M}\\right)$. As $P\\to M$, $\\dfrac{dP}{dt}\\to$ ___`,
+  '0',['zero'],
+  `When $P=M$: $\\dfrac{dP}{dt}=kM\\left(1-1\\right)=0$. Growth stops at the carrying capacity.`
+),
+mc('diffeq',
+  `In Euler's method, if $\\dfrac{dy}{dx}=x+y$ and $(x_0,y_0)=(0,1)$ with $\\Delta x=0.1$, then $y_1\\approx$`,
+  [`$1.1$`,`$1.0$`,`$0.9$`,`$1.2$`],
+  `$1.1$`,
+  `Slope at $(0,1)$: $m=0+1=1$. So $y_1=1+1\\cdot0.1=1.1$.`
+),
+mc('diffeq',
+  `A slope field represents:`,
+  [
+    `The antiderivative of a function`,
+    `The value of $\\frac{dy}{dx}$ at various points`,
+    `The second derivative of a solution`,
+    `The area under a curve`
+  ],
+  `The value of $\\frac{dy}{dx}$ at various points`,
+  `A slope field plots short line segments with slope equal to $dy/dx$ at each point, showing the family of solutions.`
+),
+tf('diffeq',
+  `The solution to $\\dfrac{dy}{dx}=ky$ is always exponential growth when $k>0$.`,
+  'True',
+  `$\\dfrac{dy}{dx}=ky\\Rightarrow y=y_0e^{kt}$. For $k>0$ and $y_0>0$, this grows exponentially.`
+),
+mc('diffeq',
+  `The logistic model grows fastest when $P=$`,
+  [`$0$`,`$M$`,`$M/2$`,`$2M$`],
+  `$M/2$`,
+  `The logistic rate $\\dfrac{dP}{dt}=\\dfrac{k}{M}P(M-P)$ is maximized when $P(M-P)$ is maximal, which occurs at $P=M/2$.`
+),
+);
+
+// ──────────────────────────────────────────────────────────────
+// POLAR & PARAMETRIC
+// ──────────────────────────────────────────────────────────────
+B.push(
+mc('polar',
+  `For parametric equations $x=f(t),y=g(t)$, $\\dfrac{dy}{dx}=$`,
+  [
+    `$\\dfrac{dy/dt}{dx/dt}$`,
+    `$\\dfrac{dx/dt}{dy/dt}$`,
+    `$\\dfrac{dy}{dt}\\cdot\\dfrac{dx}{dt}$`,
+    `$\\dfrac{d^2y}{dt^2}$`
+  ],
+  `$\\dfrac{dy/dt}{dx/dt}$`,
+  `Parametric slope: $\\dfrac{dy}{dx}=\\dfrac{dy/dt}{dx/dt}$.`
+),
+mc('polar',
+  `Polar area formula from $\\theta=\\alpha$ to $\\theta=\\beta$:`,
+  [
+    `$\\displaystyle\\int_\\alpha^\\beta r\\,d\\theta$`,
+    `$\\dfrac{1}{2}\\displaystyle\\int_\\alpha^\\beta [r(\\theta)]^2\\,d\\theta$`,
+    `$\\pi\\displaystyle\\int_\\alpha^\\beta [r(\\theta)]^2\\,d\\theta$`,
+    `$\\displaystyle\\int_\\alpha^\\beta r^2\\,d\\theta`
+  ],
+  `$\\dfrac{1}{2}\\displaystyle\\int_\\alpha^\\beta [r(\\theta)]^2\\,d\\theta$`,
+  `Polar area: $A=\\dfrac{1}{2}\\int_\\alpha^\\beta[r(\\theta)]^2\\,d\\theta$.`
+),
+mc('polar',
+  `In polar coordinates, $x=$ ___`,
+  [`$r\\sin\\theta$`,`$r\\cos\\theta$`,`$r\\tan\\theta$`,`$r^2\\cos\\theta$`],
+  `$r\\cos\\theta$`,
+  `$x=r\\cos\\theta$, $y=r\\sin\\theta$, $x^2+y^2=r^2$.`
+),
+tf('polar',
+  `$\\dfrac{d^2y}{dx^2}=\\dfrac{d}{dt}\\!\\left(\\dfrac{dy}{dx}\\right)\\div\\dfrac{dx}{dt}$ for parametric curves.`,
+  'True',
+  `Second derivative: $\\dfrac{d^2y}{dx^2}=\\dfrac{\\frac{d}{dt}(dy/dx)}{dx/dt}$.`
+),
+mc('polar',
+  `Speed of a parametric curve is:`,
+  [
+    `$\\sqrt{(f'(t))^2+(g'(t))^2}$`,
+    `$f'(t)+g'(t)$`,
+    `$|f'(t)|+|g'(t)|$`,
+    `$(f'(t))^2+(g'(t))^2`
+  ],
+  `$\\sqrt{(f'(t))^2+(g'(t))^2}$`,
+  `Speed $=\\sqrt{(dx/dt)^2+(dy/dt)^2}$. Distance traveled is $\\int_a^b\\text{speed}\\,dt$.`
+),
+mc('polar',
+  `Parametric arc length on $[a,b]$:`,
+  [
+    `$\\displaystyle\\int_a^b\\sqrt{x'^2+y'^2}\\,dt$`,
+    `$\\displaystyle\\int_a^b(x'+y')\\,dt$`,
+    `$\\displaystyle\\int_a^b x'y'\\,dt$`,
+    `$\\displaystyle\\int_a^b\\sqrt{x'+y'}\\,dt`
+  ],
+  `$\\displaystyle\\int_a^b\\sqrt{x'^2+y'^2}\\,dt$`,
+  `Parametric arc length: $L=\\int_a^b\\sqrt{(dx/dt)^2+(dy/dt)^2}\\,dt$.`
+),
+mc('polar',
+  `The polar curve $r=a$ is a:`,
+  [`Spiral`,`Circle centered at origin with radius $|a|$`,`Line through origin`,`Cardioid`],
+  `Circle centered at origin with radius $|a|$`,
+  `$r=a$ means a constant distance from the origin — a circle of radius $|a|$.`
+),
+tf('polar',
+  `The velocity vector for parametric motion is $\\langle f'(t), g'(t)\\rangle$.`,
+  'True',
+  `Velocity $=\\langle dx/dt, dy/dt\\rangle=\\langle f'(t),g'(t)\\rangle$. Acceleration is $\\langle f''(t),g''(t)\\rangle$.`
+),
+mc('polar',
+  `For polar coordinates, $r^2=$`,
+  [`$x+y$`,`$x^2+y^2$`,`$xy$`,`$x^2-y^2$`],
+  `$x^2+y^2$`,
+  `$x^2+y^2=r^2$ from the Pythagorean identity in polar coords.`
+),
+mc('polar',
+  `When does a parametric curve have a horizontal tangent?`,
+  [
+    `When $dx/dt=0$`,
+    `When $dy/dt=0$ and $dx/dt\\neq 0$`,
+    `When both $dy/dt=0$ and $dx/dt=0$`,
+    `When $dy/dx=1$`
+  ],
+  `When $dy/dt=0$ and $dx/dt\\neq 0$`,
+  `Horizontal tangent when $dy/dt=0$ (and $dx/dt\\neq0$). Vertical tangent when $dx/dt=0$ (and $dy/dt\\neq0$).`
+),
+);
+
+// ──────────────────────────────────────────────────────────────
+// SERIES
+// ──────────────────────────────────────────────────────────────
+const sp=rn(2,5);
+B.push(
+mc('series',
+  `The geometric series $\\sum_{n=1}^\\infty a_1 r^{n-1}$ converges when:`,
+  [`$|r|\\leq 1$`,`$|r|<1$`,`$r<1$`,`$r>0$`],
+  `$|r|<1$`,
+  `Geometric series converge when $|r|<1$, and the sum is $\\dfrac{a_1}{1-r}$.`
+),
+mc('series',
+  `The $p$-series $\\sum\\dfrac{1}{n^p}$ converges when:`,
+  [`$p\\geq 1$`,`$p>1$`,`$p<1$`,`$p\\leq 1$`],
+  `$p>1$`,
+  `$p$-series: converges if $p>1$, diverges if $p\\leq 1$.`
+),
+mc('series',
+  `The $n$-th Term Divergence Test says:`,
+  [
+    `If $\\lim a_n=0$, the series converges`,
+    `If $\\lim a_n\\neq 0$, the series diverges`,
+    `If $\\lim a_n=0$, the series diverges`,
+    `The test is always conclusive`
+  ],
+  `If $\\lim a_n\\neq 0$, the series diverges`,
+  `$n$-th term test: if $\\lim_{n\\to\\infty}a_n\\neq 0$, series diverges. If $=0$, test is inconclusive.`
+),
+mc('series',
+  `The Maclaurin series for $e^x$ is:`,
+  [
+    `$\\displaystyle\\sum_{n=0}^\\infty\\dfrac{x^n}{n}$`,
+    `$\\displaystyle\\sum_{n=0}^\\infty\\dfrac{x^n}{n!}$`,
+    `$\\displaystyle\\sum_{n=0}^\\infty\\dfrac{(-1)^n x^n}{n!}$`,
+    `$1+x+x^2+x^3+\\cdots$`
+  ],
+  `$\\displaystyle\\sum_{n=0}^\\infty\\dfrac{x^n}{n!}$`,
+  `$e^x=\\sum_{n=0}^\\infty\\dfrac{x^n}{n!}=1+x+\\dfrac{x^2}{2!}+\\dfrac{x^3}{3!}+\\cdots$`
+),
+mc('series',
+  `The Alternating Series Test requires: $a_{n+1}\\leq a_n$ AND:`,
+  [`$\\lim a_n=1$`,`$\\lim a_n=0$`,`$a_n>0$`,`The series alternates and is bounded`],
+  `$\\lim a_n=0$`,
+  `AST: $\\sum(-1)^n a_n$ converges if (1) $a_{n+1}\\leq a_n$ (decreasing) and (2) $\\lim_{n\\to\\infty}a_n=0$.`
+),
+mc('series',
+  `The Ratio Test: $\\lim_{n\\to\\infty}\\left|\\dfrac{a_{n+1}}{a_n}\\right|=L$. The series converges absolutely if:`,
+  [`$L>1$`,`$L<1$`,`$L=1$`,`$L=0$`],
+  `$L<1$`,
+  `Ratio Test: $L<1\\Rightarrow$ converges absolutely; $L>1\\Rightarrow$ diverges; $L=1\\Rightarrow$ inconclusive.`
+),
+tf('series',
+  `Absolute convergence implies convergence.`,
+  'True',
+  `If $\\sum|a_n|$ converges (absolute convergence), then $\\sum a_n$ also converges.`
+),
+mc('series',
+  `The Lagrange Error Bound for $n$th degree Taylor polynomial is:`,
+  [
+    `$|R_n(x)|\\leq M|x-c|^n/n!$`,
+    `$|R_n(x)|\\leq M|x-c|^{n+1}/(n+1)!$`,
+    `$|R_n(x)|\\leq|a_{n+1}|$`,
+    `$|R_n(x)|\\leq M|x-c|^n$`
+  ],
+  `$|R_n(x)|\\leq M|x-c|^{n+1}/(n+1)!$`,
+  `Lagrange: $|R_n(x)|\\leq\\dfrac{M|x-c|^{n+1}}{(n+1)!}$ where $M=\\max|f^{(n+1)}(z)|$ between $c$ and $x$.`
+),
+mc('series',
+  `To find the interval of convergence, first apply the ___ test.`,
+  [`$p$-series`,`Ratio`,`Alternating Series`,`Integral`],
+  `Ratio`,
+  `Always start with the Ratio Test to find the radius of convergence, then check endpoints separately.`
+),
+mc('series',
+  `The Maclaurin series for $\\sin x$:`,
+  [
+    `$\\displaystyle\\sum_{n=0}^\\infty\\dfrac{(-1)^n x^{2n}}{(2n)!}$`,
+    `$\\displaystyle\\sum_{n=0}^\\infty\\dfrac{(-1)^n x^{2n+1}}{(2n+1)!}$`,
+    `$\\displaystyle\\sum_{n=0}^\\infty\\dfrac{x^{2n+1}}{(2n+1)!}$`,
+    `$\\displaystyle\\sum_{n=0}^\\infty\\dfrac{x^{2n}}{(2n)!}$`
+  ],
+  `$\\displaystyle\\sum_{n=0}^\\infty\\dfrac{(-1)^n x^{2n+1}}{(2n+1)!}$`,
+  `$\\sin x=x-\\dfrac{x^3}{3!}+\\dfrac{x^5}{5!}-\\cdots=\\sum_{n=0}^\\infty\\dfrac{(-1)^n x^{2n+1}}{(2n+1)!}$`
+),
+mc('series',
+  `A series converges conditionally if:`,
+  [
+    `$\\sum a_n$ converges and $\\sum|a_n|$ converges`,
+    `$\\sum a_n$ converges but $\\sum|a_n|$ diverges`,
+    `$\\sum|a_n|$ converges but $\\sum a_n$ diverges`,
+    `Neither converges`
+  ],
+  `$\\sum a_n$ converges but $\\sum|a_n|$ diverges`,
+  `Conditional convergence: the series converges, but not absolutely. Classic example: the alternating harmonic series.`
+),
+mc('series',
+  `The LCT (Limit Comparison Test) says: if $\\lim\\dfrac{a_n}{b_n}=L>0$, then:`,
+  [
+    `$\\sum a_n$ converges and $\\sum b_n$ diverges`,
+    `Both $\\sum a_n$ and $\\sum b_n$ behave the same`,
+    `$\\sum a_n$ converges only if $L<1$`,
+    `The test is inconclusive`
+  ],
+  `Both $\\sum a_n$ and $\\sum b_n$ behave the same`,
+  `LCT: if $\\lim a_n/b_n=L$ with $0<L<\\infty$, then $\\sum a_n$ and $\\sum b_n$ either both converge or both diverge.`
+),
+match('series',
+  `Match each convergence test to its condition.`,
+  [
+    ['Geometric','Converges if $|r|<1$'],
+    ['p-Series','Converges if $p>1$'],
+    ['Ratio Test','Converges if $\\lim|a_{n+1}/a_n|<1$'],
+    ['AST','Converges if $a_n$ decreasing and $\\lim a_n=0$'],
+  ],
+  `The four primary convergence tests for series.`
+),
+mc('series',
+  `The radius of convergence $R$ from the Ratio Test is $R=\\dfrac{1}{L}$ where $L=$`,
+  [
+    `$\\lim_{n\\to\\infty}|a_n|$`,
+    `$\\lim_{n\\to\\infty}\\left|\\dfrac{a_{n+1}}{a_n}\\right|$`,
+    `$\\lim_{n\\to\\infty}\\dfrac{a_n}{n}$`,
+    `$\\lim_{n\\to\\infty}\\dfrac{n}{a_n}$`
+  ],
+  `$\\lim_{n\\to\\infty}\\left|\\dfrac{a_{n+1}}{a_n}\\right|$`,
+  `From the Ratio Test, the radius $R=1/L$ where $L=\\lim|a_{n+1}/a_n|$ (the ratio without $|x-c|$ terms).`
+),
+);
+
+return B;
+}
+
+// ════════════════════════════════════════════════════════════════
+// GAME STATE
+// ════════════════════════════════════════════════════════════════
+let state = {
+  score: 0,
+  streak: 0,
+  topicScores: {},   // {topicId: {correct,wrong,pts}}
+  unlockedIdx: 0,    // index into TOPICS
+  currentTopic: null,
+  queue: [],
+  qIdx: 0,
+  answered: false,
+  timerInterval: null,
+  timeLeft: 20,
+  dragSrc: null,
+};
+
+function initState(){
+  state.score=0; state.streak=0; state.unlockedIdx=0;
+  state.topicScores={};
+  TOPICS.forEach(t=>{ state.topicScores[t.id]={correct:0,wrong:0,pts:0,mastered:false}; });
+}
+
+// ════════════════════════════════════════════════════════════════
+// SCREENS
+// ════════════════════════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const inGame = id==='screen-question';
+  document.getElementById('hud').classList.toggle('visible', inGame);
+}
+function showTitle(){ clearTimer(); showScreen('screen-title'); renderTopicGrid(); }
+
+// ════════════════════════════════════════════════════════════════
+// TOPIC GRID
+// ════════════════════════════════════════════════════════════════
+function renderTopicGrid(){
+  const grid = document.getElementById('topic-grid');
+  grid.innerHTML='';
+  TOPICS.forEach((t,i)=>{
+    const ts = state.topicScores[t.id];
+    const locked = i > state.unlockedIdx;
+    const mastered = ts.mastered;
+    const pct = ts.correct+ts.wrong>0 ? Math.round(100*ts.correct/(ts.correct+ts.wrong)) : null;
+
+    const card = document.createElement('div');
+    card.className='topic-card'+(locked?' locked-card':'');
+    card.innerHTML=`
+      <div class="t-num">TOPIC ${i+1}</div>
+      <div class="t-name">${t.name}</div>
+      <div class="t-count">${pct!==null?pct+'% accuracy':'Not started'}</div>
+      <div class="t-status ${mastered?'mastered':locked?'locked':'unlocked'}">${mastered?'✓ Mastered':locked?'Locked':'Available'}</div>
+    `;
+    if(!locked) card.onclick=()=>startTopic(i);
+    grid.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// TOPIC / ROUND
+// ════════════════════════════════════════════════════════════════
+function startTopic(idx){
+  state.currentTopic = TOPICS[idx];
+  const ts = state.topicScores[state.currentTopic.id];
+  ts.correct=0; ts.wrong=0; ts.pts=0;
+
+  // Build queue: take all questions for this topic + shuffle + take 15
+  const bank = buildBank().filter(q=>q.topic===state.currentTopic.id);
+  state.queue = shuffle(bank).slice(0,15);
+  state.qIdx = 0;
+  state.streak = 0;
+
+  document.getElementById('hud-topic').textContent = state.currentTopic.name;
+  showScreen('screen-question');
+  renderQuestion();
+}
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+// ════════════════════════════════════════════════════════════════
+// QUESTION RENDERING
+// ════════════════════════════════════════════════════════════════
+function renderQuestion(){
+  if(state.qIdx>=state.queue.length){ endRound(); return; }
+  const q = state.queue[state.qIdx];
+  state.answered = false;
+
+  // HUD progress
+  const pct = Math.round(100*state.qIdx/state.queue.length);
+  document.getElementById('hud-progress').style.width=pct+'%';
+  updateHUD();
+
+  // Reset card
+  const card=document.getElementById('q-card');
+  card.className='q-card';
+  document.getElementById('explain-panel').classList.remove('visible');
+  document.getElementById('next-btn').classList.remove('visible');
+
+  // Type tag
+  const typeNames={mc:'Multiple Choice',tf:'True / False',fill:'Fill in the Blank',match:'Drag & Match'};
+  document.getElementById('q-type-tag').textContent=typeNames[q.type]||q.type;
+
+  // Question text
+  document.getElementById('q-text').innerHTML=q.question;
+
+  // Answer area
+  const area=document.getElementById('q-answer-area');
+  area.innerHTML='';
+
+  if(q.type==='mc') renderMC(q,area);
+  else if(q.type==='tf') renderTF(q,area);
+  else if(q.type==='fill') renderFill(q,area);
+  else if(q.type==='match') renderMatch(q,area);
+
+  // Start timer
+  startTimer();
+
+  // MathJax
+  if(window.MathJax) MathJax.typesetPromise([card]).catch(()=>{});
+}
+
+function renderMC(q,area){
+  const grid=document.createElement('div');
+  grid.className='options-grid';
+  const letters=['A','B','C','D'];
+  shuffle([...q.options]).forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='opt-btn';
+    btn.innerHTML=`<span class="opt-letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.onclick=()=>{
+      if(state.answered)return;
+      const correct = opt===q.answer;
+      submitAnswer(correct, q, ()=>{
+        grid.querySelectorAll('.opt-btn').forEach(b=>{
+          const txt=b.querySelector('span:last-child').innerHTML;
+          if(txt===q.answer) b.classList.add('correct');
+          else if(txt===opt && !correct) b.classList.add('wrong');
+          b.disabled=true;
+        });
+      });
+    };
+    grid.appendChild(btn);
+  });
+  area.appendChild(grid);
+}
+
+function renderTF(q,area){
+  const row=document.createElement('div');
+  row.className='tf-row';
+  ['True','False'].forEach(val=>{
+    const btn=document.createElement('button');
+    btn.className='tf-btn';
+    btn.textContent=val;
+    btn.onclick=()=>{
+      if(state.answered)return;
+      const correct=val===q.answer;
+      submitAnswer(correct,q,()=>{
+        row.querySelectorAll('.tf-btn').forEach(b=>{
+          if(b.textContent===q.answer) b.classList.add('correct');
+          else b.classList.add('wrong');
+          b.disabled=true;
+        });
+      });
+    };
+    row.appendChild(btn);
+  });
+  area.appendChild(row);
+}
+
+function renderFill(q,area){
+  const row=document.createElement('div');
+  row.className='fill-row';
+  const inp=document.createElement('input');
+  inp.className='fill-input';
+  inp.placeholder='Type your answer…';
+  inp.autocomplete='off';
+  const sub=document.createElement('button');
+  sub.className='fill-submit';
+  sub.textContent='Submit';
+
+  const check=()=>{
+    if(state.answered)return;
+    const val=inp.value.trim().toLowerCase().replace(/\s/g,'');
+    const correct=[q.answer,...(q.altAnswers||[])].some(a=>
+      val===a.toLowerCase().replace(/\s/g,'')
+    );
+    inp.disabled=true;
+    sub.disabled=true;
+    inp.style.borderColor=correct?'var(--green)':'var(--red)';
+    submitAnswer(correct,q);
+  };
+  sub.onclick=check;
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') check(); });
+  row.appendChild(inp); row.appendChild(sub);
+  area.appendChild(row);
+  setTimeout(()=>inp.focus(),100);
+}
+
+function renderMatch(q,area){
+  const container=document.createElement('div');
+  // Shuffle left and right independently
+  const lefts=shuffle(q.pairs.map(p=>p[0]));
+  const rights=shuffle(q.pairs.map(p=>p[1]));
+  const correctMap=Object.fromEntries(q.pairs);
+
+  container.innerHTML=`
+    <div class="match-area">
+      <div>
+        <div class="match-col-title">Terms</div>
+        <div class="match-items" id="match-left">${lefts.map(l=>`<div class="match-item" draggable="true" data-val="${encodeURIComponent(l)}">${l}</div>`).join('')}</div>
+      </div>
+      <div>
+        <div class="match-col-title">Definitions (drop here)</div>
+        <div class="match-items" id="match-right">${rights.map(r=>`<div class="drop-zone" data-val="${encodeURIComponent(r)}">${r}</div>`).join('')}</div>
+      </div>
+    </div>
+    <button class="btn-outline match-submit" id="match-submit-btn">Check Matches</button>
+  `;
+  area.appendChild(container);
+
+  // Drag events
+  let dragSrcEl=null;
+  container.querySelectorAll('.match-item').forEach(item=>{
+    item.addEventListener('dragstart',e=>{ dragSrcEl=item; item.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    item.addEventListener('dragend',()=>{ item.classList.remove('dragging'); });
+  });
+  container.querySelectorAll('.drop-zone').forEach(zone=>{
+    zone.addEventListener('dragover',e=>{ e.preventDefault(); zone.classList.add('over'); });
+    zone.addEventListener('dragleave',()=>zone.classList.remove('over'));
+    zone.addEventListener('drop',e=>{
+      e.preventDefault(); zone.classList.remove('over');
+      if(!dragSrcEl)return;
+      // Swap: move the dragged label next to this zone
+      dragSrcEl.dataset.droppedOn=zone.dataset.val;
+      zone.dataset.droppedBy=dragSrcEl.dataset.val;
+      zone.style.borderStyle='solid';
+      zone.style.borderColor='var(--chalk-dimmer)';
+      // Visual: show term inside zone
+      zone.innerHTML=`<strong>${decodeURIComponent(dragSrcEl.dataset.val)}</strong><br><span style="font-size:.8rem;color:var(--chalk-dim)">${decodeURIComponent(zone.dataset.val)}</span>`;
+    });
+  });
+
+  document.getElementById('match-submit-btn').onclick=()=>{
+    if(state.answered)return;
+    let allCorrect=true;
+    container.querySelectorAll('.drop-zone').forEach(zone=>{
+      const term=zone.dataset.droppedBy?decodeURIComponent(zone.dataset.droppedBy):null;
+      const def=decodeURIComponent(zone.dataset.val);
+      const expected=correctMap[term];
+      if(term && expected===def) zone.classList.add('matched-correct');
+      else{ zone.classList.add('matched-wrong'); allCorrect=false; }
+    });
+    submitAnswer(allCorrect,q);
+  };
+}
+
+// ════════════════════════════════════════════════════════════════
+// ANSWER SUBMISSION
+// ════════════════════════════════════════════════════════════════
+function submitAnswer(correct, q, extra){
+  clearTimer();
+  state.answered=true;
+  if(extra) extra();
+
+  const card=document.getElementById('q-card');
+  const ts=state.topicScores[state.currentTopic.id];
+
+  let pts=0;
+  if(correct){
+    const timeBonus=Math.round(state.timeLeft*2);
+    const streakBonus=state.streak>=4?50:state.streak>=2?20:0;
+    pts=100+timeBonus+streakBonus;
+    state.score+=pts;
+    state.streak++;
+    ts.correct++;
+    ts.pts+=pts;
+    card.classList.add('flash-correct');
+    if(state.streak>=3) showStreakToast(state.streak);
+  } else {
+    state.streak=0;
+    ts.wrong++;
+    card.classList.add('flash-wrong');
+  }
+
+  // Explanation
+  const ep=document.getElementById('explain-panel');
+  document.getElementById('explain-text').innerHTML=q.explanation;
+  ep.classList.add('visible');
+  if(window.MathJax) MathJax.typesetPromise([ep]).catch(()=>{});
+
+  document.getElementById('next-btn').classList.add('visible');
+  updateHUD();
+}
+
+function nextQuestion(){
+  state.qIdx++;
+  renderQuestion();
+}
+
+// ════════════════════════════════════════════════════════════════
+// TIMER
+// ════════════════════════════════════════════════════════════════
+function startTimer(){
+  clearTimer();
+  state.timeLeft=20;
+  updateTimerDisplay();
+  state.timerInterval=setInterval(()=>{
+    state.timeLeft--;
+    updateTimerDisplay();
+    if(state.timeLeft<=0){
+      clearTimer();
+      if(!state.answered) submitAnswer(false, state.queue[state.qIdx]);
+    }
+  },1000);
+}
+function clearTimer(){ clearInterval(state.timerInterval); }
+function updateTimerDisplay(){
+  const el=document.getElementById('hud-timer');
+  el.textContent=state.timeLeft;
+  el.className='hud-val timer'+(state.timeLeft<=5?' urgent':'');
+}
+
+// ════════════════════════════════════════════════════════════════
+// HUD
+// ════════════════════════════════════════════════════════════════
+function updateHUD(){
+  document.getElementById('hud-score').textContent=state.score.toLocaleString();
+  document.getElementById('hud-streak').textContent=state.streak+'🔥';
+}
+
+// ════════════════════════════════════════════════════════════════
+// STREAK TOAST
+// ════════════════════════════════════════════════════════════════
+function showStreakToast(n){
+  const t=document.getElementById('streak-toast');
+  const msgs=['','','','🔥 Triplet!','⚡ On Fire!','💥 Blazing!','🌟 Unstoppable!','🚀 Legendary!'];
+  t.textContent=msgs[Math.min(n,msgs.length-1)]+` ${n} in a row!`;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ════════════════════════════════════════════════════════════════
+// END OF ROUND
+// ════════════════════════════════════════════════════════════════
+function endRound(){
+  clearTimer();
+  const ts=state.topicScores[state.currentTopic.id];
+  const total=ts.correct+ts.wrong;
+  const pct=total>0?Math.round(100*ts.correct/total):0;
+  const passed=pct>=80;
+
+  // Unlock next topic
+  const curIdx=TOPICS.findIndex(t=>t.id===state.currentTopic.id);
+  if(passed){
+    ts.mastered=true;
+    if(curIdx+1>state.unlockedIdx) state.unlockedIdx=Math.min(curIdx+1,TOPICS.length-1);
+  }
+
+  // AP score projection (per topic, 0-5 based on % correct)
+  const apScore=pct>=90?5:pct>=75?4:pct>=60?3:pct>=45?2:1;
+  const apBarPct=Math.min(100,pct);
+
+  document.getElementById('sum-title').textContent=passed?'Topic Mastered! ✓':'Not Yet — Keep Going!';
+  document.getElementById('sum-sub').textContent=`${state.currentTopic.name}`;
+  document.getElementById('sum-correct').textContent=ts.correct;
+  document.getElementById('sum-wrong').textContent=ts.wrong;
+  document.getElementById('sum-pts').textContent=ts.pts.toLocaleString();
+  setTimeout(()=>{ document.getElementById('sum-ap-bar').style.width=apBarPct+'%'; },100);
+  document.getElementById('sum-ap-text').innerHTML=`Projected AP Score: <span>${apScore}</span>`;
+  document.getElementById('sum-message').textContent=passed
+    ? (curIdx<TOPICS.length-1?`Next topic unlocked: ${TOPICS[curIdx+1].name}`:'All topics mastered!')
+    : `You need ≥80% to unlock the next topic. You scored ${pct}%. Try again!`;
+
+  const actions=document.getElementById('sum-actions');
+  actions.innerHTML='';
+  const retryBtn=document.createElement('button');
+  retryBtn.className='btn';
+  retryBtn.textContent='Retry This Topic';
+  retryBtn.onclick=()=>startTopic(curIdx);
+  actions.appendChild(retryBtn);
+
+  if(passed && curIdx<TOPICS.length-1){
+    const nextBtn=document.createElement('button');
+    nextBtn.className='btn';
+    nextBtn.style.background='linear-gradient(135deg,#1a6b8a,#1e90a8)';
+    nextBtn.textContent=`Next: ${TOPICS[curIdx+1].name} →`;
+    nextBtn.onclick=()=>startTopic(curIdx+1);
+    actions.appendChild(nextBtn);
+  }
+
+  const homeBtn=document.createElement('button');
+  homeBtn.className='btn-outline';
+  homeBtn.textContent='Topic Select';
+  homeBtn.onclick=()=>showTitle();
+  actions.appendChild(homeBtn);
+
+  // Check for full completion
+  const allMastered=TOPICS.every(t=>state.topicScores[t.id].mastered);
+  if(allMastered){
+    setTimeout(()=>showFinal(),1200);
+    return;
+  }
+
+  showScreen('screen-summary');
+}
+
+// ════════════════════════════════════════════════════════════════
+// FINAL SCREEN
+// ════════════════════════════════════════════════════════════════
+function showFinal(){
+  spawnConfetti();
+  document.getElementById('final-score-num').textContent='5';
+  document.getElementById('final-total-pts').textContent=state.score.toLocaleString();
+
+  const bd=document.getElementById('final-breakdown');
+  bd.innerHTML='';
+  TOPICS.forEach(t=>{
+    const ts=state.topicScores[t.id];
+    const total=ts.correct+ts.wrong;
+    const pct=total>0?Math.round(100*ts.correct/total):0;
+    bd.innerHTML+=`
+      <div class="tb-row">
+        <div class="tb-name">${t.name}</div>
+        <div class="tb-bar-bg"><div class="tb-bar-fill" style="width:${pct}%"></div></div>
+        <div class="tb-pct">${pct}%</div>
+      </div>
+    `;
+  });
+  showScreen('screen-final');
+}
+
+function spawnConfetti(){
+  const colors=['#5de87a','#f0c040','#5ab8e8','#e85a8a','#c45ae8','#ffffff'];
+  for(let i=0;i<80;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div');
+      el.className='confetti-piece';
+      el.style.left=Math.random()*100+'vw';
+      el.style.background=colors[Math.floor(Math.random()*colors.length)];
+      el.style.animationDelay=Math.random()*1+'s';
+      el.style.animationDuration=(2+Math.random()*2)+'s';
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),4000);
+    },i*25);
+  }
+}
+
+function restartGame(){
+  initState();
+  showTitle();
+}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+initState();
+showTitle();
+</script>
+</body>
+</html>
